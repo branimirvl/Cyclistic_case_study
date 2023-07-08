@@ -1,0 +1,518 @@
+---
+title: "Case study: Cyclistic - bike-share company"
+output:
+  html_document: default
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Report {.tabset}
+
+## Introduction
+
+This case study scenario is a part of the Google Data Analytics Professional Certificate program. Data manipulation, cleaning and analysis was done in R and visualization in Tableau.
+
+In this optional capstone project we work as a junior data analyst in the marketing analyst team at Cyclistic, a fictional bike sharing company in Chicago. The company offers more than 5800 bicycles that are geotracked spread around on more than 600 docking stations. It's customers are divided into two categories: customers who purchase single-ride or full-day passes and are referred to as casual riders while customers who purchase annual memberships are Cyclistic members. Cyclistic's finance analysts have concluded that annual members are much more profitable than casual riders.
+
+Our task is to analyse historical data from a one year period and find the differences in bike usage between causal and annual members in order to determine the best marketing strategy for converting causal into annual members.
+
+Data used in this case study is located online, on a cloud server and is free to download. The data has been made available by Motivate International Inc. under this [license](https://ride.divvybikes.com/data-license-agreement). Once again note that Cyclistic is a fictional company but the raw data is collected by Motivate International Inc. which is the company that operates Chicago's Divy bike sharing service.
+
+Data at hand is collected automatically whenever someone unlocks bike at one station and when they return it at some other station in the system. Because of the automation of data collection, data is unbiased and the potential for human error is minimal. Data is assumed to be credible because it is collected and published by the organization who owns the bikes and uses the data for it's own purpose.
+
+Data is organized by month and is structured in columns and rows.
+
+Each trip is anonymized and includes:
+
+-   Trip start day and time
+-   Trip end day and time
+-   Trip start station
+-   Trip end station
+-   Rider type
+
+The data has been processed to remove trips that are taken by staff as they service and inspect the system.
+
+For this study only the data from June 2022 to May 2023 will be analysed.
+
+## Data cleaning and manipulation
+
+### 1. **Description**
+
+This document will record all the steps taken in prepraring the raw data for analysis.
+
+```{r eval=FALSE}
+library(tidyverse)
+```
+
+### 2. **Merging datasets**
+
+#### 2.1 Importing raw data
+
+```{r eval=FALSE}
+June_2022 <- read_csv("C:/Users/B/Desktop/Case study 1 - Bike Share Company/Dataset/Dataset unzipped/Cyclistic_2022_06.csv")
+July_2022 <- read_csv("C:/Users/B/Desktop/Case study 1 - Bike Share Company/Dataset/Dataset unzipped/Cyclistic_2022_07.csv")
+August_2022 <- read_csv("C:/Users/B/Desktop/Case study 1 - Bike Share Company/Dataset/Dataset unzipped/Cyclistic_2022_08.csv")
+September_2022 <- read_csv("C:/Users/B/Desktop/Case study 1 - Bike Share Company/Dataset/Dataset unzipped/Cyclistic_2022_09.csv")
+October_2022 <- read_csv("C:/Users/B/Desktop/Case study 1 - Bike Share Company/Dataset/Dataset unzipped/Cyclistic_2022_10.csv")
+November_2022 <- read_csv("C:/Users/B/Desktop/Case study 1 - Bike Share Company/Dataset/Dataset unzipped/Cyclistic_2022_11.csv")
+December_2022 <- read_csv("C:/Users/B/Desktop/Case study 1 - Bike Share Company/Dataset/Dataset unzipped/Cyclistic_2022_12.csv")
+January_2023 <- read_csv("C:/Users/B/Desktop/Case study 1 - Bike Share Company/Dataset/Dataset unzipped/Cyclistic_2023_01.csv")
+Februrary_2023 <- read_csv("C:/Users/B/Desktop/Case study 1 - Bike Share Company/Dataset/Dataset unzipped/Cyclistic_2023_02.csv")
+March_2023 <- read_csv("C:/Users/B/Desktop/Case study 1 - Bike Share Company/Dataset/Dataset unzipped/Cyclistic_2023_03.csv")
+April_2023 <- read_csv("C:/Users/B/Desktop/Case study 1 - Bike Share Company/Dataset/Dataset unzipped/Cyclistic_2023_04.csv")
+May_2023 <- read_csv("C:/Users/B/Desktop/Case study 1 - Bike Share Company/Dataset/Dataset unzipped/Cyclistic_2023_05.csv")
+```
+
+#### 2.2 Cheking data structure
+
+In order to combine all the datasets into one we need to check if all the datsets have the same string types and names of columns.
+
+```{r eval=FALSE}
+str(June_2022)
+str(July_2022)
+str(August_2022)
+str(September_2022)
+str(October_2022)
+str(November_2022)
+str(December_2022)
+str(January_2023)
+str(Februrary_2023)
+str(March_2023)
+str(April_2023)
+str(May_2023)
+```
+
+The structure summary outputs showed that all the strings types and column names are the same throughout all 12 datasets.
+
+#### 2.3 Merging datasets
+
+```{r eval=FALSE}
+complete_data <- rbind(June_2022, July_2022, August_2022, September_2022, October_2022, November_2022, 
+                       December_2022, January_2023, Februrary_2023, March_2023, April_2023, May_2023)
+```
+
+### 3. **Preparing the dataset**
+
+#### 3.1 Calculating ride length
+
+Caluclating ride length will help us in analysis and also in data cleaning by removing entries with negative length or the ones that are shorter than one minute.
+
+```{r eval=FALSE}
+# Calculate ride length in seconds 
+complete_data$ride_length <- difftime(complete_data$ended_at, 
+                                      complete_data$started_at,
+                                      units = "secs") 
+
+# Change string type to numeric
+complete_data$ride_length <- as.numeric(complete_data$ride_length)
+
+```
+
+#### 3.2 Extracting date variables
+
+It will be useful to have separate columns for certain date variables. For this actions lubridate package will be used.
+
+```{r eval=FALSE}
+# Loading lubridate package
+library(lubridate)
+
+# Extracting year from date
+complete_data$year <- year(ymd_hms(complete_data$started_at))
+
+# Extracting month from date
+complete_data$month <- month(ymd_hms(complete_data$started_at),
+                             label=TRUE, abbr=FALSE)
+
+# Extracting day of the month from date
+complete_data$day <- mday(ymd_hms(complete_data$started_at))
+
+# Extracting date 
+complete_data$date <- date(complete_data$started_at)
+
+# Extracting day of the week from date
+complete_data$day_of_week <- wday(ymd_hms(complete_data$started_at),
+                                  label=TRUE, abbr=FALSE)
+# Extracting week from date
+complete_data$week_of_year <- isoweek(ymd_hms(complete_data$started_at))
+
+# Extracting time of day from date
+library(hms)
+complete_data$time_of_day <- as_hms(ymd_hms(complete_data$started_at))
+
+```
+
+### 4. **Cleaning the dataset**
+
+#### 4.1 Removing rows with missing values
+
+There are some rows that have missing values in certain columns so they need to be removed.
+
+```{r eval=FALSE}
+# Remove rows with at least one missing value
+clean_data <- complete_data[complete.cases(complete_data), ]
+```
+
+#### 4.2 Removing rows with ride length shorter than 60 seconds
+
+There are instances of data entries were the ride length is shorter than one minute which were caused by people re-docking the bikes without going on a trip. This will also remove rows with ride length \< 0 which were caused by errors in data recording.
+
+```{r eval=FALSE}
+# Filter ride length < 60 sec
+clean_data <- clean_data %>% 
+  filter(!(ride_length < 60))
+```
+
+#### 4.3 Checking stations
+
+Creating data frame that will arrange all starting station by name and how many times they have been used in a period of one year.
+
+```{r eval=FALSE}
+stations <- clean_data %>% 
+  count(start_station_name) %>% 
+  arrange(start_station_name)
+```
+
+Upon inspection we can see that there was only a couple of instances where station names aren't adhering to a standard naming and are fully capitalized. Those stations were probably used for test and maintenance purposes and need to be removed from the dataset.
+
+```{r eval=FALSE}
+# Remove test station(s)
+clean_data <- clean_data %>%
+  filter(!(str_detect(start_station_name, "[:upper:]")
+      & !str_detect(start_station_name, "[:lower:]"))
+      )
+```
+
+Upon inspecting *stations* data frame we can also see that some stations were only used once or for a very small amount during one year. Upon further inspection of the *clean_data* dataset we can see that some of those stations were only used during one month of the one year period and could also be some kind of test stations. For our analysis we want to have stations that were used available for use during the whole one year period and the stations that were used only during one month should be removed from the dataset.
+
+```{r eval=FALSE}
+# Remove stations that were only used in one month
+clean_data <- clean_data %>% 
+  group_by(start_station_name) %>% 
+  filter(!(n_distinct(month) == 1)) %>% 
+  ungroup()
+```
+
+#### 4.4 Checking rideable type
+
+We need to check how many unique rideable types are there in the datgaset.
+
+```{r eval=FALSE}
+# Check unique rideable type
+unique(clean_data$rideable_type)
+```
+
+The function output gives three results. We also need to check when all three rideable types  were used so that we see if any of them where added later in that one year period.
+
+```{r eval=FALSE}
+# Create a data frame that will check when each rideable type was used
+rideable_type_check <-clean_data %>%
+  group_by(month, year) %>%
+  count(rideable_type)
+```
+
+By viewing the data frame we can see that all three types of bike were used in each month of the selected period. 
+
+#### 4.4 Checking for duplicates 
+
+Lastly, we need to check if all ride id's are unique.
+
+```{r eval=FALSE}
+# Create a data frame that will count ride_id and filter those that are duplicates
+ride_id_check <- clean_data %>%
+  count(ride_id) %>%
+  filter(n > 1)
+```
+
+Data frame *ride_id_check* gives no results so we can conclude that there are no duplicates in the *clean_data* dataset.
+
+### 5. **Saving the clean dataset**
+
+Before we export cleaned dataset, we need to convert the *time_of_day* variable to a date format so that it's saved properly and so that the data doesn't get corrupted.
+
+```{r eval=FALSE}
+# Converting time_of_day variable to date format
+clean_data$time_of_day <- as.POSIXct(clean_data$time_of_day, format = "%H:%M:%S")
+```
+
+Now everything is in order and the final dataset is ready to be saved as csv file.
+
+```{r eval=FALSE}
+# Save the dataset
+library(data.table)
+
+fwrite(clean_data, "C:/Users/B/Desktop/Case study 1 - Bike Share Company/Cyclistic/clean_data.csv")
+```
+
+## Data analysis code
+
+### 1. **Description**
+
+This document will record all the code written for data analysis.
+
+### 2. **Importing cleaned dataset and loading packages**
+
+```{r eval=FALSE}
+library(tidyverse)
+# Importing cleaned dataset
+library(readr)
+clean_data <- read_csv("C:/Users/B/Desktop/Case study 1 - Bike Share Company/Cyclistic/clean_data.csv")
+```
+
+
+### 3. **Sum of all users by user type**
+
+```{r eval=FALSE}
+# Calculate the percentage of users by type
+sum_users <- clean_data %>% 
+ count(member_casual) %>%
+  mutate(percent = round((n/sum(n)*100), 2)) %>% 
+  rename(user_type= member_casual)
+```
+
+### 4. **Comparison between some important statisitical variables based on type of user**
+
+```{r eval=FALSE}
+# Create function for mode calculation
+getmode <- function(v) {
+  uniqv <- unique(v)
+  uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+# Format time_of_day variable to a hms format
+library(hms)
+clean_data$time_of_day <- as_hms(ymd_hms(clean_data$time_of_day))
+
+# Create a data frame for statistical summary of the clean_data dataset and comparison between two types of users
+stat_summary <- clean_data %>%
+   group_by(member_casual) %>%
+  summarize(
+    avg_ride_length_min = (mean(ride_length, na.rm = TRUE))/60, 
+    mode_month = getmode(month),
+    mode_day_of_week = getmode(day_of_week),
+    mode_time_of_day = getmode(time_of_day) 
+  )
+
+# Calculate average ride length for each day of the week by user type
+avg_ride_length_day <- clean_data %>% 
+  group_by(member_casual, day_of_week) %>% 
+  summarize(avg_ride_length_day = (mean(ride_length, na.rm = TRUE))/60)
+```
+
+### 5. **Number of trips per user type** 
+
+#### 5.1 Number of trips by date
+
+```{r eval=FALSE}
+# Arrange weekdays in order 
+clean_data$day_of_week <- ordered(clean_data$day_of_week, 
+  levels = c("Monday", "Tuesday", "Wednesday", "Thursday",
+    "Friday", "Saturday", "Sunday"))
+
+# Create a data frame that summarises the number of trips by date and the type of user
+total_trips_users <- clean_data %>% 
+  select(date, year, month, day, day_of_week, member_casual) %>% 
+  group_by(member_casual, date) %>% 
+  mutate(trips = n()) %>% 
+  distinct(date, member_casual,.keep_all = TRUE)
+
+```
+
+### 6. **Most popular stations**
+
+```{r eval=FALSE}
+# Most popular starting stations
+most_popular_stations <- clean_data %>% 
+  select(start_station_name, start_lat, start_lng) %>% 
+  group_by(start_station_name) %>% 
+  mutate(trips = n()) %>% 
+  distinct(start_station_name, .keep_all = TRUE) %>% 
+  arrange(-trips)
+```
+
+#### 6.1 Most popular stations by user type
+
+```{r eval=FALSE}
+# Most popular stations by users
+stations_users <- clean_data %>% 
+  select(start_station_name, start_lat, start_lng, member_casual) %>% 
+  group_by(member_casual, start_station_name) %>% 
+  mutate(trips = n()) %>% 
+  distinct(start_station_name, .keep_all = TRUE) 
+
+# Most popular stations by users, filtered to remove the stations that have been used only by one type of user
+stations_users_filtered <- stations_users %>%
+  group_by(start_station_name) %>%
+  filter(n_distinct(member_casual) == 2)
+
+# Most popular stations for casual users
+casual <- stations_users_filtered %>%
+  filter(member_casual == "casual") %>%
+  group_by(start_station_name) %>%
+  rename(casual_trips = trips) %>%
+  arrange(start_station_name)
+
+# Most popular stations for member users
+members <- stations_users_filtered %>% 
+  filter(member_casual == "member") %>%
+  group_by(start_station_name)  %>% 
+  rename(member_trips = trips) %>% 
+  arrange(start_station_name)
+
+# Create a data frame to sum up trips, used to calculate casual and member users percentage, without filtered stations
+sum_trips <- casual %>% 
+  select(start_station_name, start_lat, start_lng) %>% 
+  group_by(start_station_name) %>% 
+  arrange(start_station_name)
+
+sum_trips$sum_trips <- (casual$casual_trips + members$member_trips)
+
+# Casual ratio of usage per station
+casual$casual_percent <- round((casual$casual_trips / sum_trips$sum_trips)*100, 2)
+
+# Members ratio of usage per station
+members$members_percent <- round((members$member_trips / sum_trips$sum_trips)*100, 2)
+
+# Merge casual and members data frames for easier analysis and visualization
+trips_merged <- merge(casual, members, by = "start_station_name") 
+  
+# Remove unnecessary columns
+trips_merged <- trips_merged[, -c(4,7,8,9)]
+```
+
+### 7. **Exporting datasets**
+
+```{r eval=FALSE}
+library(data.table)
+
+fwrite(most_popular_stations, "C:/Users/B/Desktop/Case study 1 - Bike Share Company/Cyclistic-analysis/most_popular_stations.csv")
+fwrite(members, "C:/Users/B/Desktop/Case study 1 - Bike Share Company/Cyclistic-analysis/members.csv")
+fwrite(casual, "C:/Users/B/Desktop/Case study 1 - Bike Share Company/Cyclistic-analysis/casual.csv")
+fwrite(sum_users,"C:/Users/B/Desktop/Case study 1 - Bike Share Company/Cyclistic-analysis/sum_users.csv")
+fwrite(stat_summary, "C:/Users/B/Desktop/Case study 1 - Bike Share Company/Cyclistic-analysis/stat_summary.csv")
+fwrite(avg_ride_length_day,"C:/Users/B/Desktop/Case study 1 - Bike Share Company/Cyclistic-analysis/avg_ride_length_day.csv")
+fwrite(total_trips_users, "C:/Users/B/Desktop/Case study 1 - Bike Share Company/Cyclistic-analysis/total_trips_users.csv")
+fwrite(trips_merged, "C:/Users/B/Desktop/Case study 1 - Bike Share Company/Cyclistic-analysis/trips_merged.csv")
+
+```
+
+
+## Analysis results and conclusions
+
+### 1. **Analysis** 
+
+#### 1.1 Number of total trips
+
+![](img/sum_users.png){width="25%"}
+
+From June 1st 2022 to May 31st 2023 there was a bit more than 4.4 million trips made with Cyclistic's bikes. 61% of those trips were made by users who had paid memberships and 39% were made by users who either bought the full day or single ride pass.
+
+#### 1.2 Statistical summary
+
+![](img/stat_summary.png){width="70%"}
+
+Statistical summary shows us a few differences between casual users and users with paid memberships. Average ride length for casual users is approximately 23 minutes, while for members it's around 12 and a half minutes. That's a significant difference. Longer rides for casual users can indicate that they are using bike sharing service more for leisure purposes while shorter rides for members can indicate that they are using the same service more for daily commute. Most common day when casual users where using the service was saturday, while for members that was Wednesday. This can indicate the same thing as the ride length. 
+
+Casual users where using the bikes most during the month of July and for members that was August. Both are summer months and that's the time of year when people are outside the most so it's also logical that they are driving bikes the most during those months. Therefore, we can't conclude anything based on the mode of month. Most common time of the day when both users are using the bike is just 5 and a half minutes apart and based on that we also can't conclude anything. 
+
+#### 1.3 Average ride length for each day of the week based on user type
+
+<div class='tableauPlaceholder' id='viz1688559650822' style='position: relative'><noscript><a href='#'><img alt='Dashboard 1 ' src='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;ri&#47;ridelengthday&#47;Dashboard1&#47;1_rss.png' style='border: none' /></a></noscript><object class='tableauViz'  style='display:none;'><param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' /> <param name='embed_code_version' value='3' /> <param name='site_root' value='' /><param name='name' value='ridelengthday&#47;Dashboard1' /><param name='tabs' value='no' /><param name='toolbar' value='yes' /><param name='static_image' value='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;ri&#47;ridelengthday&#47;Dashboard1&#47;1.png' /> <param name='animate_transition' value='yes' /><param name='display_static_image' value='yes' /><param name='display_spinner' value='yes' /><param name='display_overlay' value='yes' /><param name='display_count' value='yes' /><param name='language' value='en-US' /></object></div>                
+
+```{js, ride, echo=FALSE}
+                   
+var divElement = document.getElementById('viz1688559650822');                    
+var vizElement = divElement.getElementsByTagName('object')[0];                    
+if ( divElement.offsetWidth > 800 ) { vizElement.style.width='1000px';vizElement.style.height='827px';} 
+else if ( divElement.offsetWidth > 500 ) { vizElement.style.width='1000px';vizElement.style.height='827px';} 
+else { vizElement.style.width='100%';vizElement.style.height='727px';}                     
+var scriptElement = document.createElement('script');                    
+scriptElement.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';                    
+vizElement.parentNode.insertBefore(scriptElement, vizElement);                
+
+```
+
+
+As we can see from the bar chart, longest rides for both casual and member users occur during the weekend. For members those rides on the weekend aren't that much longer than the ones during the week. During the week they hover around 12 minutes while on Saturday and Sunday they last about 14 minutes. 
+
+On the other hand, for casual users there is a more significant jump in ride length during the weekend. In the middle of the week average ride length for casual users is between 20 and 21 minutes and it rises as we approach weekend to a time of around 26, 27 minutes. This can also be an indication that casual users use bike services more for leisure purposes. Higher average on Monday for casual users can be a result of higher number of rides starting after midnight due to people going out on Sunday.
+
+#### 1.4 Number of total trips by day of week  and month per user type
+
+<div class='tableauPlaceholder' id='viz1688757643743' style='position: relative'><noscript><a href='#'><img alt='Dashboard 1 ' src='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;To&#47;Totaltripsbydate&#47;Dashboard1&#47;1_rss.png' style='border: none' /></a></noscript><object class='tableauViz'  style='display:none;'><param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' /> <param name='embed_code_version' value='3' /> <param name='site_root' value='' /><param name='name' value='Totaltripsbydate&#47;Dashboard1' /><param name='tabs' value='no' /><param name='toolbar' value='yes' /><param name='static_image' value='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;To&#47;Totaltripsbydate&#47;Dashboard1&#47;1.png' /> <param name='animate_transition' value='yes' /><param name='display_static_image' value='yes' /><param name='display_spinner' value='yes' /><param name='display_overlay' value='yes' /><param name='display_count' value='yes' /><param name='language' value='en-US' /></object></div>                
+
+```{js, ride2, echo=FALSE}                   
+var divElement = document.getElementById('viz1688757643743');                    
+var vizElement = divElement.getElementsByTagName('object')[0];                    
+if ( divElement.offsetWidth > 800 ) { vizElement.style.width='1000px';vizElement.style.height='827px';} 
+else if ( divElement.offsetWidth > 500 ) { vizElement.style.width='1000px';vizElement.style.height='827px';} 
+else { vizElement.style.width='100%';vizElement.style.height='727px';}                     
+var scriptElement = document.createElement('script');                    
+scriptElement.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';                    
+vizElement.parentNode.insertBefore(scriptElement, vizElement);                
+
+```
+
+
+Highest number of trips for casual users occurred during the weekends in June and July. Peak was on Saturdays in July when casual users where taking more than 73.000 trips per day. Again, this indicates how casual users are mostly using bikes for leisure purposes.
+
+For members the use of bikes is more consistent through the year compared to casual users. Peak for members was on Tuesdays in August with slightly above 60.000 trips per day. Other highest number of trips per week day occurred during weekdays in June, August and September. This also indicates how member users are using bikes more for daily commute.
+
+From the second table we can see that the number of trips for casual users was almost the same as for members during the month of July. WE can also see that the usage of bike sharing service is seasonal and coincides with the weather. The lowest amount of trips for both types of users occurs during colder months in late autumn and winter and with the coming of spring those numbers start to rise till they reach their peak during the summer. 
+
+#### 1.5 Most popular stations
+
+<div class='tableauPlaceholder' id='viz1688757788092' style='position: relative'><noscript><a href='#'><img alt='Dashboard 1 ' src='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;Ch&#47;ChicagoCyclisticbiketrips&#47;Dashboard1&#47;1_rss.png' style='border: none' /></a></noscript><object class='tableauViz'  style='display:none;'><param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' /> <param name='embed_code_version' value='3' /> <param name='site_root' value='' /><param name='name' value='ChicagoCyclisticbiketrips&#47;Dashboard1' /><param name='tabs' value='no' /><param name='toolbar' value='yes' /><param name='static_image' value='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;Ch&#47;ChicagoCyclisticbiketrips&#47;Dashboard1&#47;1.png' /> <param name='animate_transition' value='yes' /><param name='display_static_image' value='yes' /><param name='display_spinner' value='yes' /><param name='display_overlay' value='yes' /><param name='display_count' value='yes' /><param name='language' value='en-US' /></object></div>                
+
+```{js, stations, echo=FALSE}                   
+var divElement = document.getElementById('viz1688757788092');                    
+var vizElement = divElement.getElementsByTagName('object')[0];                    
+if ( divElement.offsetWidth > 800 ) { vizElement.style.width='1000px';vizElement.style.height='827px';} 
+else if ( divElement.offsetWidth > 500 ) { vizElement.style.width='1000px';vizElement.style.height='827px';} else { vizElement.style.width='100%';vizElement.style.height='727px';}                     
+var scriptElement = document.createElement('script');                    
+scriptElement.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';                    
+izElement.parentNode.insertBefore(scriptElement, vizElement);                
+```
+
+
+From the map it is visible that the most popular stations are in the central part of Chicago which is a more tourist part of Chicago compared to the southern or western parts where bike usage is a lot lower.  Most popular station was Streeter Dr & Grand Ave with 67.751 trips starting from that station during one year. Second most popular station was DuSable Lake Shore Dr & Monroe St with significantly less trips at 38.200. 	
+
+#### 1.6 Most popular stations per user type
+
+<div class='tableauPlaceholder' id='viz1688757895422' style='position: relative'><noscript><a href='#'><img alt='Dashboard 1 ' src='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;Ca&#47;Casualvsmemberstrips&#47;Dashboard1&#47;1_rss.png' style='border: none' /></a></noscript><object class='tableauViz'  style='display:none;'><param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' /> <param name='embed_code_version' value='3' /> <param name='site_root' value='' /><param name='name' value='Casualvsmemberstrips&#47;Dashboard1' /><param name='tabs' value='no' /><param name='toolbar' value='yes' /><param name='static_image' value='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;Ca&#47;Casualvsmemberstrips&#47;Dashboard1&#47;1.png' /> <param name='animate_transition' value='yes' /><param name='display_static_image' value='yes' /><param name='display_spinner' value='yes' /><param name='display_overlay' value='yes' /><param name='display_count' value='yes' /><param name='language' value='en-US' /></object></div>                
+
+```{js, stations2, echo=FALSE}                  
+var divElement = document.getElementById('viz1688757895422');                    
+var vizElement = divElement.getElementsByTagName('object')[0];                    
+if ( divElement.offsetWidth > 800 ) { vizElement.style.width='1000px';vizElement.style.height='827px';} 
+else if ( divElement.offsetWidth > 500 ) { vizElement.style.width='1000px';vizElement.style.height='827px';} 
+else { vizElement.style.width='100%';vizElement.style.height='727px';}                     
+var scriptElement = document.createElement('script');                    
+scriptElement.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';                    
+vizElement.parentNode.insertBefore(scriptElement, vizElement);                
+```
+
+
+This map shows us which stations had higher percentage of casual users and which had more members users. It is visible that the stations that are in the central part and along the shoreline of lake Michigan have more casual users. For instance, two of the most popular stations have more than 75% of casual users. Those areas around lake Michigan's shoreline are one of Chicago's main tourist attractions which can explain the high number of casual users.
+
+As we move away from the shoreline and head west into the city where the density of stations is the highest we can see that the vast majority of stations have more members users. This can mean that people in those areas are using bikes more for daily commute. As we move further west the majority of stations have more causal users, but density of stations is much lower in those parts of the city and also the usage of stations.
+
+On southern part of the map there is a mix of casual and members stations with a bit more stations with higher percentage of casual users, while on the northern part there is more stations with higher percent of members users. 
+
+### 2. **Recommendations**
+
+From the analysis we can conclude that casual users use the bike sharing service mostly for leisure purposes rather than daily commute like in members users. In order to convert casual users into annual members, marketing team at Cyclistic can try a few things.
+
+1. **Prepare offers that will cater to casual users needs**
+
+Even though a lot of casual users use the service on weekends there are also casual users who use the service for daily commute which we can see based on the most frequent time casual users use the bikes and that is a bit after 5 PM, same as paid members. Cyclistic should offer a package that will encourage casual users to buy it. For instance, offer lower prices for monthly packages or packages which include longer rides because average ride length for casual users is longer than the ones for paid members or just longer rides during weekends. They can also start to offer quarterly packages because we saw that casual users rarely use bikes during colder months but during summer those numbers are close to the ones of members.   
+
+2. **Promote Cyclistic annual membership packages in areas where there is higher percentage of casual users**
+
+Through mapping of stations we could see that there are areas of the city where there is higher percentage of casual users so marketing team at Cyclistic could focus more on promoting their packages in those areas and reduce promotion in areas where the percentage of members users is high.
+
+3. **Run a digital campaign that will promote benefits of using bikes for daily commute**
+
+To increase the usage of bikes in daily commute for casual users team at Cyclistic should run a digital campaign that promotes the use of bike for daily commute. For instance, they should promote health benefits of using bikes daily, how it's easier and faster to navigate through crowded city on bikes rather than in cars or public transport, the availability of many bike stations throughout the city, etc. 
